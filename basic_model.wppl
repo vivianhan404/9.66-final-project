@@ -1,0 +1,40 @@
+const p = 0.75
+const k = 20
+const privateWeight = 1
+const obs1 = [false,true,true,true,true]  // A B B B B
+
+var simVote = function(count, groundTrue, n, obss) {  
+  var yesInfo = groundTrue? flip(p) : flip(1-p)
+  var curCount = count + (yesInfo? privateWeight: 0)
+  
+  if (n == obss.length) {
+    return flip(curCount/(k + n + privateWeight))
+  }
+  else {
+    observe(Bernoulli({p: curCount/(k + n + privateWeight)}), obss[n])
+    return simVote(curCount, groundTrue, n + 1, obss)
+  }
+}
+
+var run = function(obss) {
+  var model = function() {
+    // make first vote less salient
+    var gTrue = flip(0.5)
+    var zCount = gTrue? sample(Binomial({p: p, n: k})): sample(Binomial({p: (1-p), n: k}))
+    return simVote(zCount, gTrue, 0, obss)
+  }
+  
+  var dist = Infer({method: "MCMC", samples: 100000}, model)
+  print(Math.exp(dist.score(true)))
+}
+
+// for debugging:
+// model(obs1)
+// run(obs1)
+
+run([])
+run(obs1.slice(0, 1))
+run(obs1.slice(0, 2))
+run(obs1.slice(0, 3))
+run(obs1.slice(0, 4))
+run(obs1.slice(0, 5))
